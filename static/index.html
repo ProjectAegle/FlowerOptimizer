@@ -1,0 +1,124 @@
+<html>
+    <head>
+        <title> Flower Optimizer </title>
+        <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    </head>
+    <body>
+        <h1 id="notify"> 正在连接花云入口选择器 </h1>
+        <div id="manual_auth_token" style="display: none;" >
+            <p>认证密码：</p>
+            <input id="auth_token" type="text"></h1>
+            <button onclick="confirm_auth_token()">确认</button>
+        </div>
+        <div id="main_menu" style="display: none">
+            <p>当前订阅：</p>
+            <button id="unlock_upstream" onclick="unlock_upstream()">点此解锁以修改</button>
+            <input id="upstream" disabled type="text" size="50"></input>
+            <p>当前入口：</p>
+            <button id="unlock_entry" onclick="unlock_entry()">点此解锁以修改</button>
+            <select id="entry" disabled>
+            <option value="default">不修改（保存花云原序）</option>
+            <option value="bjdata">北京数据中心</option>
+            <option value="gzdata">镇江数据中心</option>
+            <option value="shdata">上海数据中心</option>
+            </select>
+			<p>新订阅链接（灰色可复制）：</p><input id="sub" disabled></input>
+			<button onclick="copy_sub();">一键复制</button><br/>
+            <a href="/service">管理后台服务</a>
+			<p style="color: red;">建议使用服务运行，以免忘记启动后台造成无法更新订阅</p>
+			<p style="color: orange;">花云入口选择器，助您选择最适合的入口</p>
+			<p style="color: orange;">此项目由 Project Aegle 开发并维护，按 AGPL-3.0 协议开源</p>
+			<p style="color: orange;">Aegle（αἴγλη） 在希腊语中指光明、光荣，希望您继续关注 Project Aegle 的其他项目</p>
+        </div>
+        <script>
+            var copy_sub = function(){
+                navigator.clipboard.writeText(document.getElementById("sub").value);
+                swal("复制成功！")
+            }
+            var confirm_auth_token = function(){
+                window.location.href="/?auth="+document.getElementById("auth_token").value;
+            }
+            var unlock_upstream = function(){
+                if(document.getElementById("upstream").disabled){
+                    document.getElementById("unlock_upstream").innerHTML = "点此以保存";
+                    document.getElementById("upstream").disabled = false;
+                }else{
+                fetch("/config?auth="+auth, {method: 'POST', body: JSON.stringify({key: 'upstream', value: document.getElementById("upstream").value})})
+                .then((data) =>{
+                    if(data.status != 204)swal({text: "修改配置文件失败", icon: "error"})
+                    else swal('修改配置文件成功！');
+                }).catch((error) => {
+                    swal({text: "修改配置文件失败", icon: "error"})
+                    console.error("Error:", error);
+                });
+                    document.getElementById("unlock_upstream").innerHTML = "点此解锁以修改";
+                    document.getElementById("upstream").disabled = true;
+                }
+            }
+            var unlock_entry = function(){
+                if(document.getElementById("entry").disabled){
+                    document.getElementById("unlock_entry").innerHTML = "点此以保存";
+                    document.getElementById("entry").disabled = false;
+                }else{
+                fetch("/config?auth="+auth, {method: 'POST', body: JSON.stringify({key: 'prefer_entry', value: document.getElementById("entry").value})})
+                .then((data) =>{
+                    if(data.status != 204)swal({text: "修改配置文件失败", icon: "error"})
+                    else swal('修改配置文件成功！');
+                }).catch((error) => {
+                    swal({text: "修改配置文件失败", icon: "error"})
+                    console.error("Error:", error);
+                });
+                    document.getElementById("unlock_entry").innerHTML = "点此解锁以修改";
+                    document.getElementById("entry").disabled = true;
+                }
+            }
+            var connected = function(auth){
+                document.getElementById("notify").style = "";
+                document.getElementById("main_menu").style = "";
+                document.getElementById("manual_auth_token").style = "display:none";
+                document.getElementById("notify").innerHTML = "连接成功！";
+                fetch("/config?auth="+auth)
+                .then((response) => response.json())
+                .then((data) =>{
+                    document.getElementById("upstream").value = data["upstream"];
+                    document.getElementById("entry").value = data["prefer_entry"];
+                }).catch((error) => {
+                    swal({text: "下载配置文件失败", icon: "error"})
+                    console.error("Error:", error);
+                });
+                document.getElementById("sub").value = document.location.origin + '/sub?auth='+auth;
+                document.getElementById("sub").size = document.getElementById("sub").value.length;
+            }
+        </script>
+        <script>
+            let params = new URLSearchParams(window.location.search);
+            var auth;
+            if(!params.has("auth")){
+                if(localStorage.getItem("auth")!=null){
+                    auth=localStorage.getItem("auth");
+                }else{
+                    swal("认证密码缺失", "缺失认证密码，推荐使用脚本启动时输出的链接自动填写密码");
+                    document.getElementById("notify").style = "display:none";
+                    document.getElementById("manual_auth_token").style = "";
+                }
+            }else{
+                auth=params.get("auth");
+            }
+            if(auth!=null&&auth!=undefined){
+                localStorage.setItem("auth", auth);
+                fetch("/ping?auth="+auth)
+                .then((data) =>{
+                    if(data.status!=200){
+                        swal({text: "认证密码错误或服务后台错误", icon: "error"}).then((value) => {
+                            localStorage.clear();
+                            window.location.href = "/";
+                        });
+                    }else connected(auth);
+                }).catch((error) => {
+                    swal({text: "连接服务后台失败", icon: "error"})
+                    console.error("Error:", error);
+                });
+            }
+        </script>
+    </body>
+</html>

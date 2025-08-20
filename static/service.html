@@ -1,0 +1,66 @@
+	<html>
+    <head>
+        <title> Flower Optimizer </title>
+        <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    </head>
+    <body>
+        <h1 id="notify"> 正在连接花云入口选择器 </h1>
+        <div id="main_menu" style="display: none">
+            <button onclick="install()">安装服务</button>
+            <button onclick="uninstall()">卸载服务</button><br/>
+            <button onclick="query()">查询状态</button>
+            <button onclick="stop()">停止服务</button>
+            <button onclick="start()">启动服务</button><br/>
+            <a href="/">管理配置</a>
+			<p style="color: red;">建议使用服务运行，以免忘记启动后台造成无法更新订阅</p>
+			<p style="color: orange;">花云入口选择器，助您选择最适合的入口</p>
+			<p style="color: orange;">此项目由 Project Aegle 开发并维护，按 AGPL-3.0 协议开源</p>
+			<p style="color: orange;">Aegle（αἴγλη） 在希腊语中指光明、光荣，希望您继续关注 Project Aegle 的其他项目</p>
+        </div>
+        <script>
+            var iauth;
+            var connected = function(auth){
+                document.getElementById("notify").style = "";
+                document.getElementById("main_menu").style = "";
+                document.getElementById("notify").innerHTML = "连接成功！";
+                iauth=auth;
+            }
+            var install = function(auth){
+                swal({text: "确定要安装服务吗？安装服务时此进程会自动退出以免占用端口"}).then((value) => {
+                            fetch("/service/install?auth="+iauth)
+                        });
+            }
+            var uninstall = function(auth){
+                swal({text: "确定要卸载服务吗？"}).then((value) => {
+                            fetch("/service/uninstall?auth="+iauth)
+                        });
+            }
+            var start = function(auth){
+                swal({text: "确定要启动服务吗？启动服务时此进程会自动退出以免占用端口"}).then((value) => {
+                            fetch("/service/start?auth="+iauth)
+                        });
+            }
+            var stop = function(auth){
+                fetch("/service/stop?auth="+iauth)
+            }
+            var query = function(auth){
+                fetch("/service/query?auth="+iauth).then((data)=>{data.text().then((txt)=>{swal(txt);})});
+            }
+        </script>
+        <script>
+                var auth=localStorage.getItem("auth");
+                fetch("/ping?auth="+auth)
+                .then((data) =>{
+                    if(data.status!=200){
+                        swal({text: "认证密码错误或服务后台错误", icon: "error"}).then((value) => {
+                            localStorage.clear();
+                            window.location.href = "/";
+                        });
+                    }else connected(auth);
+                }).catch((error) => {
+                    swal({text: "连接服务后台失败", icon: "error"})
+                    console.error("Error:", error);
+                });
+        </script>
+    </body>
+</html>
