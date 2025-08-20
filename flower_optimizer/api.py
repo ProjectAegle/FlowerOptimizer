@@ -16,6 +16,8 @@ total_entrys = ['bjdata', 'gzdata', 'shdata']
 auth_token = flower_optimizer.config.get('auth_token')
 index_html = open('static/index.html', 'r', encoding='utf8').read()
 
+print('WebUI Address: http://127.0.0.1:8000/?auth=' + auth_token)
+
 @app.get('/sub')
 async def sub(request):
     if "auth" not in request.args:
